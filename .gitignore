@@ -39,7 +39,8 @@ Thumbs.db
 *.pro.user*
 *.qbs.user*
 CMakeLists.txt.user*
-
+CMakePresets.json*
+CMakeUserPresets.json*
 # xemacs temporary files
 *.flc
 
@@ -80,3 +81,5 @@ CMakeLists.txt.user*
 .rcc/
 .uic/
 /build*/
+/out*/
+/.vs*/
