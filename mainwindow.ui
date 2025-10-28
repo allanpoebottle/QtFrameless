@@ -63,7 +63,7 @@
              </size>
             </property>
             <property name="text">
-             <string>...</string>
+             <string>小</string>
             </property>
            </widget>
           </item>
@@ -82,12 +82,12 @@
              </size>
             </property>
             <property name="text">
-             <string>...</string>
+             <string>大</string>
             </property>
            </widget>
           </item>
           <item>
-           <widget class="QToolButton" name="toolButtonRestoe">
+           <widget class="QToolButton" name="toolButtonRestore">
             <property name="minimumSize">
              <size>
               <width>30</width>
@@ -101,7 +101,7 @@
              </size>
             </property>
             <property name="text">
-             <string>...</string>
+             <string>还原</string>
             </property>
            </widget>
           </item>
@@ -120,7 +120,7 @@
              </size>
             </property>
             <property name="text">
-             <string>...</string>
+             <string>关</string>
             </property>
            </widget>
           </item>
