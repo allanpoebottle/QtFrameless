@@ -118,30 +118,33 @@ bool MainWindow::eventFilter(QObject* watched, QEvent* event)
             if (me->button() == Qt::LeftButton) {
                 m_mousePressed = true;
                 m_leftButton = true;
-                // 记录拖动开始时的窗口位置
+                if (!m_isMaximizedCustom)
+                    m_restoreGeometry = geometry();
+                qDebug() <<"鼠标标题栏按下位置" << m_restoreGeometry;
+                // 记录鼠标拖动开始时的窗口位置
                 m_dragPosLeftTop = me->globalPos() - frameGeometry().topLeft();
 
             }
-            return false; // still allow other handlers
+            return false; // 仍然允许其他处理程序
         }
         else if (event->type() == QEvent::MouseButtonRelease) {
             m_mousePressed = false;
             m_leftButton = false;
-            // on release after dragging, consider snapping
+            // 当鼠标移动时，检查是否需要吸附到屏幕边缘
             trySnapToEdgesWhenDragging(QCursor::pos());
             return false;
         }
         else if (event->type() == QEvent::MouseMove) {
             QMouseEvent* me = static_cast<QMouseEvent*>(event);
             if (m_leftButton && m_mousePressed) {
-                // if currently maximized and user drags titlebar -> restore and reposition so cursor stays at titlebar
+                // 如果当前最大化和用户拖动标题栏->恢复和重新定位，使光标停留在标题栏
                 if (m_isMaximizedCustom) {
-                    // compute new width = previous restore width (use half screen or 80% of available)
+                    // 算新宽度=以前的恢复宽度（使用半屏幕或80%可用）
                     QRect avail = availableScreenGeometry();
                     int newW = qMin(m_restoreGeometry.width(), avail.width());
                     int newH = qMin(m_restoreGeometry.height(), avail.height());
 
-                    // if restore geometry is empty, pick a heuristic
+                    // 如果还原的区域为空 ,那么使用 
                     if (m_restoreGeometry.isEmpty()) {
                         newW = qMin(width(), static_cast<int>(avail.width() * 0.9));
                         newH = qMin(height(), static_cast<int>(avail.height() * 0.9));
@@ -150,7 +153,7 @@ bool MainWindow::eventFilter(QObject* watched, QEvent* event)
                         newW = m_restoreGeometry.width();
                         newH = m_restoreGeometry.height();
                     }
-
+                    qDebug() << "newW" << newW << "newH" << newH;
                     // ratio of cursor x in old width
                     double relX = double(me->pos().x()) / double(width());
                     int x = me->globalX() - int(relX * newW);
@@ -323,7 +326,8 @@ void MainWindow::performResize(const QPoint& globalPos)
         int newX = geom.x() + dx;
         int newW = geom.width() - dx;
         if (newW < minimumWidth()) { newX = geom.x() + (geom.width() - minimumWidth()); newW = minimumWidth(); }
-        setGeometry(newX, geom.y(), newW, geom.height());
+        setGeometry(newX, geom.y(), newW, geom.height());  
+        qDebug() << "newX:" << newX << "newW:" << newW;
         break;
     }
     case ResizeRight: {
@@ -337,6 +341,7 @@ void MainWindow::performResize(const QPoint& globalPos)
         int newH = geom.height() - dy;
         if (newH < minimumHeight()) { newY = geom.y() + (geom.height() - minimumHeight()); newH = minimumHeight(); }
         setGeometry(geom.x(), newY, geom.width(), newH);
+        qDebug() << "newY:" << newY << "newH:" << newH;
         break;
     }
     case ResizeBottom: {
@@ -395,7 +400,7 @@ void MainWindow::trySnapToEdgesWhenDragging(const QPoint& globalPos)
     // 只有在拖动时才检查是否需要吸附(m_moving true)
     if (!m_moving)
         return;
-
+    // 获取鼠标位置所在屏幕的可用区域
     QScreen* screen = QGuiApplication::screenAt(globalPos);
     if (!screen) screen = QGuiApplication::primaryScreen();
     QRect avail = screen->availableGeometry();
@@ -405,17 +410,17 @@ void MainWindow::trySnapToEdgesWhenDragging(const QPoint& globalPos)
 
     // near top -> maximize
     if (globalPos.y() <= avail.top() + threshold) {
-        // maximize
-        if (!m_isMaximizedCustom) {
-            m_restoreGeometry = geometry(); // 仅保存一次
-        }
+        // 最大化 最大化的时候已经在首次点击时，保存当前窗口的位置和大小
+        //if (!m_isMaximizedCustom) {
+        //    m_restoreGeometry = geometry(); // 仅保存一次
+        //}
         setCustomMaximized(true);
         ui->toolButtonMax->setVisible(false);
         ui->toolButtonRestore->setVisible(true);
         return;
     }
-
-    // near left -> left half
+    return;  // 暂时不处理左右吸附
+    // 左
     if (globalPos.x() <= avail.left() + threshold) {
         m_restoreGeometry = geometry();
         QRect leftRect(avail.left(), avail.top(), avail.width() / 2, avail.height());
@@ -426,7 +431,7 @@ void MainWindow::trySnapToEdgesWhenDragging(const QPoint& globalPos)
         return;
     }
 
-    // near right -> right half
+    // 右
     if (globalPos.x() >= avail.right() - threshold) {
         m_restoreGeometry = geometry();
         QRect rightRect(avail.left() + avail.width() / 2, avail.top(), avail.width() / 2, avail.height());
