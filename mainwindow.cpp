@@ -31,7 +31,10 @@ void MainWindow::InitWindows()
 
     // 初始隐藏 restore 按钮（最大化时显示）
     ui->toolButtonRestore->setVisible(false);
-    ui->widgetTitleBar->setMouseTracking(true);
+    // 整个窗口上捕获事件
+    ui->widgetTitleBar->setMouseTracking(true);   // 鼠标悬停时显示按钮
+    this->setMouseTracking(true);
+    ui->centralwidget->setMouseTracking(true);   // 鼠标悬停时显示按钮
     m_titleBarHeight = ui->widgetTitleBar->height();
 
 }
@@ -177,7 +180,7 @@ void MainWindow::mousePressEvent(QMouseEvent* event)
         m_mousePressed = true;
         m_leftButton = true;
 
-        // detect resizing region
+        // 检测大小调整区域
         m_resizeRegion = detectResizeRegion(event->pos());
         if (m_resizeRegion != NoResize) {
             m_resizing = true;
@@ -185,7 +188,7 @@ void MainWindow::mousePressEvent(QMouseEvent* event)
         }
         else {
             m_resizing = false;
-            // if not in titlebar, we might still want to allow drag if clicked titlebar child - handled in eventFilter
+            //如果不是在标题栏，我们可能仍然希望允许拖动如果点击标题栏子处理在eventFilter
         }
     }
     QMainWindow::mousePressEvent(event);
@@ -195,6 +198,11 @@ void MainWindow::mouseMoveEvent(QMouseEvent* event)
 {
     if (m_resizing && m_leftButton) {
         performResize(event->globalPos()); // 窗口拉伸
+    }
+    // 如果拖动窗口，不改变光标
+    else if (m_leftButton && m_moving) {
+        QPoint topleft = event->globalPos() - m_dragPosLeftTop;
+        move(topleft);
     }
     else if (!m_leftButton) {
         // update cursor depending on edge proximity
