@@ -54,22 +54,23 @@ private:
     void updateCursorForRegion(ResizeRegion r);
     void performResize(const QPoint& globalPos);
 
-    // 拖动/最大化状态
-    bool m_mousePressed = false;  
+
+    bool m_mousePressed = false;       // 拖动/最大化状态
     bool m_leftButton = false; // 鼠标按下 
-    bool m_moving = false;
-    bool m_resizing = false;
+    bool m_moving = false;   // 是否正在拖动窗口
+    bool m_resizing = false; // 是否正在调整窗口大小
     ResizeRegion m_resizeRegion = NoResize;  // 当前调整区域
     QPoint m_dragOffsetForMove; // 鼠标相对于窗口左上角的偏移量  拖动窗口时用 标题栏的坐标
     QPoint m_dragStartForResize;  // 鼠标相对于窗口左上角的偏移量 拉伸时用
     bool m_isMaximizedCustom = false;   // 自定义最大化
 
-    const int m_borderWidth = 8; // detection width for resize
+    const int m_borderWidth = 8; // 调整窗口大小的边界宽度
     int m_titleBarHeight = 30; // 如果你想要一个特定的上限；构造时候取一下 widgetTitleBar->height（）
     QRect m_restoreGeometry;      // 最大化前的窗口位置
     QRect m_dragStartGeometry;  // 拖动开始时的窗口位置
     QPoint m_dragStartPosGlobal;  // 鼠标开始拖动的全局位置
-    // helper functions
+    QWidget *m_widgetTitleBar; // 标题栏
+    //辅助函数
     void setCustomMaximized(bool on);
     QRect availableScreenGeometry() const;
     void trySnapToEdgesWhenDragging(const QPoint& globalPos);

@@ -21,7 +21,8 @@ void MainWindow::InitWindows()
     setAttribute(Qt::WA_TranslucentBackground, false); // 若需要透明/阴影可调整
 
     // 让 UI 中的 widgetTitleBar 捕获鼠标事件（用于双击/拖动）
-    ui->widgetTitleBar->installEventFilter(this);
+    m_widgetTitleBar = ui->widgetTitleBar;
+    m_widgetTitleBar->installEventFilter(this);
 
     // 连接按钮（确保名字与 ui 中一致）
     connect(ui->toolButtonClose, &QAbstractButton::clicked, this, &MainWindow::on_toolButtonClose_clicked);
@@ -32,10 +33,10 @@ void MainWindow::InitWindows()
     // 初始隐藏 restore 按钮（最大化时显示）
     ui->toolButtonRestore->setVisible(false);
     // 整个窗口上捕获事件
-    ui->widgetTitleBar->setMouseTracking(true);   // 鼠标悬停时显示按钮
+    m_widgetTitleBar->setMouseTracking(true);   // 鼠标悬停时显示按钮
     this->setMouseTracking(true);
     ui->centralwidget->setMouseTracking(true);   // 鼠标悬停时显示按钮
-    m_titleBarHeight = ui->widgetTitleBar->height();
+    m_titleBarHeight = m_widgetTitleBar->height();
 
 }
 
@@ -101,8 +102,12 @@ void MainWindow::setCustomMaximized(bool on)
 // 事件过滤器：捕获widgetTitleBar上的事件（双击并按下）
 bool MainWindow::eventFilter(QObject* watched, QEvent* event)
 {
-    if (watched == ui->widgetTitleBar)   // 播放标题栏
+    if (watched == m_widgetTitleBar)   // 播放标题栏
     {
+        if (m_resizing) {
+            // 如果当前正在缩放，则禁止标题栏的拖动逻辑
+            return false;
+        }
         if (event->type() == QEvent::MouseButtonDblClick) {
             // 双击标题栏
             if (m_isMaximizedCustom) {
@@ -120,11 +125,8 @@ bool MainWindow::eventFilter(QObject* watched, QEvent* event)
                 m_leftButton = true;
                 if (!m_isMaximizedCustom)
                     m_restoreGeometry = geometry();
-                qDebug() <<"鼠标标题栏按下位置" << m_restoreGeometry;
                 // 记录鼠标拖动开始时的窗口位置
-                
                 m_dragOffsetForMove = me->globalPos() - frameGeometry().topLeft();
-                qDebug() << "鼠标拖动开始时的窗口位置" << m_dragOffsetForMove;
 
             }
             return false; // 仍然允许其他处理程序
@@ -211,7 +213,7 @@ void MainWindow::mouseMoveEvent(QMouseEvent* event)
         performResize(event->globalPos()); // 窗口拉伸
     }
     else if (!m_leftButton) {
-        // update cursor depending on edge proximity
+        // 鼠标移动到窗口边缘更新光标
         ResizeRegion r = detectResizeRegion(event->pos());
         updateCursorForRegion(r);
     }
@@ -233,7 +235,7 @@ void MainWindow::mouseReleaseEvent(QMouseEvent* event)
 void MainWindow::mouseDoubleClickEvent(QMouseEvent* event)
 {
     // 双击在eventFilter中处理的窗口标题栏:
-    if (ui->widgetTitleBar->geometry().contains(event->pos())) {
+    if (m_widgetTitleBar->geometry().contains(event->pos())) {
         if (m_isMaximizedCustom)
             on_toolButtonRestore_clicked();
         else
@@ -245,7 +247,7 @@ void MainWindow::mouseDoubleClickEvent(QMouseEvent* event)
 void MainWindow::leaveEvent(QEvent* event)
 {
     Q_UNUSED(event);
-    // reset cursor when leaving window
+    // 离开窗口时重置光标
     if (!m_resizing)
         unsetCursor();
     QMainWindow::leaveEvent(event);
@@ -258,7 +260,7 @@ void MainWindow::showEvent(QShowEvent* event)
     m_restoreGeometry = geometry();
 }
 
-// detect mouse pos relative to edges for resizing
+// 检测相对于边缘的鼠标位置来调整大小
 MainWindow::ResizeRegion MainWindow::detectResizeRegion(const QPoint& pos)
 {
     int x = pos.x();
@@ -331,7 +333,6 @@ void MainWindow::performResize(const QPoint& globalPos)
         int newW = geom.width() - dx;
         if (newW < minimumWidth()) { newX = geom.x() + (geom.width() - minimumWidth()); newW = minimumWidth(); }
         setGeometry(newX, geom.y(), newW, geom.height());  
-        qDebug() << "newX:" << newX << "newW:" << newW;
         break;
     }
     case ResizeRight: {
@@ -345,7 +346,6 @@ void MainWindow::performResize(const QPoint& globalPos)
         int newH = geom.height() - dy;
         if (newH < minimumHeight()) { newY = geom.y() + (geom.height() - minimumHeight()); newH = minimumHeight(); }
         setGeometry(geom.x(), newY, geom.width(), newH);
-        qDebug() << "newY:" << newY << "newH:" << newH;
         break;
     }
     case ResizeBottom: {
