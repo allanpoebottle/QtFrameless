@@ -70,6 +70,7 @@ private:
     QRect m_dragStartGeometry;  // 拖动开始时的窗口位置
     QPoint m_dragStartPosGlobal;  // 鼠标开始拖动的全局位置
     QWidget *m_widgetTitleBar; // 标题栏
+    int m_margin = 10;    // 窗口边缘距离 用于设置窗口阴影
     //辅助函数
     void setCustomMaximized(bool on);
     QRect availableScreenGeometry() const;

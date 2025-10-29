@@ -1,6 +1,7 @@
 #include "mainwindow.h"
 #include "ui_mainwindow.h"
 #include <QShortcut>
+#include <QGraphicsDropShadowEffect>
 
 
 MainWindow::MainWindow(QWidget *parent)
@@ -20,7 +21,21 @@ void MainWindow::initWindows()
 {
     // 无边框
     setWindowFlags(windowFlags() | Qt::FramelessWindowHint);
-    setAttribute(Qt::WA_TranslucentBackground, false); // 若需要透明/阴影可调整
+    setAttribute(Qt::WA_TranslucentBackground, true); // 必须 true 才能显示阴影
+    // 设置背景色 为白色（否则透明） 
+    /*
+    * 注意：setStyleSheet() 会完全替换之前的样式，所以直接调用会覆盖掉之前的背景、颜色等设置
+    * 实际项目建议推荐使用 dynamicProperty + QSS 匹配结合的方式，这样不会覆盖之前的设置
+    */
+    ui->centralwidget->setStyleSheet("background:white;");
+    // 设置边距以显示阴影
+    setContentsMargins(m_margin, m_margin, m_margin, m_margin);
+    // 阴影效果
+    QGraphicsDropShadowEffect* shadow = new QGraphicsDropShadowEffect(this);
+    shadow->setBlurRadius(20);           // 模糊半径
+    shadow->setOffset(0, 0);             // 阴影偏移
+    shadow->setColor(QColor(0, 0, 0, 160)); // 阴影颜色
+    ui->centralwidget->setGraphicsEffect(shadow);
 
     // 让 UI 中的 widgetTitleBar 捕获鼠标事件（用于双击/拖动）
     m_widgetTitleBar = ui->widgetTitleBar;
@@ -100,12 +115,18 @@ void MainWindow::setCustomMaximized(bool on)
     if (on) {
         // 获取当前窗口所在屏幕的可用区域
         QRect avail = availableScreenGeometry();
-        qDebug() << "avail:" << avail;
         setGeometry(avail);
         m_isMaximizedCustom = true;
+        // 最大化时去掉阴影和圆角
+        setContentsMargins(0, 0, 0, 0);
+        if (ui->centralwidget->graphicsEffect())
+            ui->centralwidget->graphicsEffect()->setEnabled(false);  // 隐藏阴影
     }
     else {
         m_isMaximizedCustom = false;
+        setContentsMargins(m_margin, m_margin, m_margin, m_margin);
+              if (ui->centralwidget->graphicsEffect())
+                  ui->centralwidget->graphicsEffect()->setEnabled(true);
         //恢复将由调用者使用m_restoreGeometry执行
         //这里只需要清除窗口状态
 
@@ -181,9 +202,9 @@ bool MainWindow::eventFilter(QObject* watched, QEvent* event)
                     if (newY + restoreH > avail.bottom()) newY = avail.bottom() - restoreH;
 
             
-             
+                    setCustomMaximized(false);
                     setGeometry(newX, newY, restoreW, restoreH);
-                    m_isMaximizedCustom = false;
+                 
                     ui->toolButtonMax->setVisible(true);
                     ui->toolButtonRestore->setVisible(false);
 
