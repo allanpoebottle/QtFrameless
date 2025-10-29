@@ -42,10 +42,10 @@ void MainWindow::initWindows()
     m_widgetTitleBar->installEventFilter(this);
     m_titleBarHeight = m_widgetTitleBar->height();
     // 连接按钮（确保名字与 ui 中一致）
-    connect(ui->toolButtonClose, &QAbstractButton::clicked, this, &MainWindow::on_toolButtonClose_clicked);
-    connect(ui->toolButtonMin, &QAbstractButton::clicked, this, &MainWindow::on_toolButtonMin_clicked);
-    connect(ui->toolButtonMax, &QAbstractButton::clicked, this, &MainWindow::on_toolButtonMax_clicked);
-    connect(ui->toolButtonRestore, &QAbstractButton::clicked, this, &MainWindow::on_toolButtonRestore_clicked);
+    connect(ui->toolButtonClose, &QAbstractButton::clicked, this, &MainWindow::slotClickedButtonClose);
+    connect(ui->toolButtonMin, &QAbstractButton::clicked, this, &MainWindow::slotClickedButtonMin);
+    connect(ui->toolButtonMax, &QAbstractButton::clicked, this, &MainWindow::slotClickedButtonMax);
+    connect(ui->toolButtonRestore, &QAbstractButton::clicked, this, &MainWindow::slotClickedButtonRestore);
 
     // 初始隐藏 restore 按钮（最大化时显示）
     ui->toolButtonRestore->setVisible(false);
@@ -57,26 +57,26 @@ void MainWindow::initWindows()
     QShortcut* shortcutFullScreen = new QShortcut(QKeySequence(Qt::Key_F11), this);
     connect(shortcutFullScreen, &QShortcut::activated, this, [this]() {
         if (m_isMaximizedCustom) {
-            on_toolButtonRestore_clicked();  // 已经最大化则还原
+            slotClickedButtonRestore();  // 已经最大化则还原
         }
         else {
-            on_toolButtonMax_clicked();      // 否则最大化
+            slotClickedButtonMax();      // 否则最大化
         }
         });
 
 }
 
-void MainWindow::on_toolButtonClose_clicked()
+void MainWindow::slotClickedButtonClose()
 {
     close();
 }
 
-void MainWindow::on_toolButtonMin_clicked()
+void MainWindow::slotClickedButtonMin()
 {
     showMinimized();
 }
 
-void MainWindow::on_toolButtonMax_clicked()
+void MainWindow::slotClickedButtonMax()
 {
     // 使用自定义最大化（保存原几何）
     if (!m_isMaximizedCustom)
@@ -89,7 +89,7 @@ void MainWindow::on_toolButtonMax_clicked()
     ui->toolButtonRestore->setVisible(true);
 }
 
-void MainWindow::on_toolButtonRestore_clicked()
+void MainWindow::slotClickedButtonRestore()
 {
     setCustomMaximized(false);
     ui->toolButtonMax->setVisible(true);
@@ -145,10 +145,10 @@ bool MainWindow::eventFilter(QObject* watched, QEvent* event)
         if (event->type() == QEvent::MouseButtonDblClick) {
             // 双击标题栏
             if (m_isMaximizedCustom) {
-                on_toolButtonRestore_clicked();
+                slotClickedButtonRestore();
             }
             else {
-                on_toolButtonMax_clicked();
+                slotClickedButtonMax();
             }
             return true;
         }   
@@ -272,9 +272,9 @@ void MainWindow::mouseDoubleClickEvent(QMouseEvent* event)
     // 双击在eventFilter中处理的窗口标题栏:
     if (m_widgetTitleBar->geometry().contains(event->pos())) {
         if (m_isMaximizedCustom)
-            on_toolButtonRestore_clicked();
+            slotClickedButtonRestore();
         else
-            on_toolButtonMax_clicked();
+            slotClickedButtonMax();
     }
     QMainWindow::mouseDoubleClickEvent(event);
 }

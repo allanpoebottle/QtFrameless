@@ -29,10 +29,10 @@ protected:
     void leaveEvent(QEvent* event) override;
     void showEvent(QShowEvent* event) override;
 private slots:
-    void on_toolButtonClose_clicked();
-    void on_toolButtonMin_clicked();
-    void on_toolButtonMax_clicked();
-    void on_toolButtonRestore_clicked();
+    void slotClickedButtonClose();
+    void slotClickedButtonMin();
+    void slotClickedButtonMax();
+    void slotClickedButtonRestore();
 
 private:
     Ui::MainWindow *ui;
