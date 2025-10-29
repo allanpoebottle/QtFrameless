@@ -444,7 +444,6 @@ void MainWindow::trySnapToEdgesWhenDragging(const QPoint& globalPos)
         ui->toolButtonRestore->setVisible(true);
         return;
     }
-    return;  // 暂时不处理左右吸附
     // 左
     if (globalPos.x() <= avail.left() + threshold) {
         m_restoreGeometry = geometry();
