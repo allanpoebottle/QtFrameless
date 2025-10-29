@@ -54,13 +54,14 @@ private:
     void updateCursorForRegion(ResizeRegion r);
     void performResize(const QPoint& globalPos);
 
-    // dragging / maximize state
-    bool m_mousePressed = false;
-    bool m_leftButton = false;
+    // 拖动/最大化状态
+    bool m_mousePressed = false;  
+    bool m_leftButton = false; // 鼠标按下 
     bool m_moving = false;
     bool m_resizing = false;
-    ResizeRegion m_resizeRegion = NoResize;
-    QPoint m_dragPosLeftTop; // 在拖动/调整大小时使用的偏移量
+    ResizeRegion m_resizeRegion = NoResize;  // 当前调整区域
+    QPoint m_dragOffsetForMove; // 鼠标相对于窗口左上角的偏移量  拖动窗口时用 标题栏的坐标
+    QPoint m_dragStartForResize;  // 鼠标相对于窗口左上角的偏移量 拉伸时用
     bool m_isMaximizedCustom = false;   // 自定义最大化
 
     const int m_borderWidth = 8; // detection width for resize

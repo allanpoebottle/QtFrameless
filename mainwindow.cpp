@@ -122,7 +122,9 @@ bool MainWindow::eventFilter(QObject* watched, QEvent* event)
                     m_restoreGeometry = geometry();
                 qDebug() <<"鼠标标题栏按下位置" << m_restoreGeometry;
                 // 记录鼠标拖动开始时的窗口位置
-                m_dragPosLeftTop = me->globalPos() - frameGeometry().topLeft();
+                
+                m_dragOffsetForMove = me->globalPos() - frameGeometry().topLeft();
+                qDebug() << "鼠标拖动开始时的窗口位置" << m_dragOffsetForMove;
 
             }
             return false; // 仍然允许其他处理程序
@@ -139,36 +141,42 @@ bool MainWindow::eventFilter(QObject* watched, QEvent* event)
             if (m_leftButton && m_mousePressed) {
                 // 如果当前最大化和用户拖动标题栏->恢复和重新定位，使光标停留在标题栏
                 if (m_isMaximizedCustom) {
-                    // 算新宽度=以前的恢复宽度（使用半屏幕或80%可用）
-                    QRect avail = availableScreenGeometry();
-                    int newW = qMin(m_restoreGeometry.width(), avail.width());
-                    int newH = qMin(m_restoreGeometry.height(), avail.height());
-
-                    // 如果还原的区域为空 ,那么使用 
-                    if (m_restoreGeometry.isEmpty()) {
-                        newW = qMin(width(), static_cast<int>(avail.width() * 0.9));
-                        newH = qMin(height(), static_cast<int>(avail.height() * 0.9));
+                    // 获取 restore 矩形（最大化前窗口）
+                    int restoreW = m_restoreGeometry.width();
+                    int restoreH = m_restoreGeometry.height();
+                    if (restoreW <= 0 || restoreH <= 0) {
+                        QRect avail = availableScreenGeometry();
+                        restoreW = qMin(width(), static_cast<int>(avail.width() * 0.8));
+                        restoreH = qMin(height(), static_cast<int>(avail.height() * 0.8));
                     }
-                    else {
-                        newW = m_restoreGeometry.width();
-                        newH = m_restoreGeometry.height();
-                    }
-                    qDebug() << "newW" << newW << "newH" << newH;
-                    // ratio of cursor x in old width
+                    // 鼠标在当前窗口中的比例位置
                     double relX = double(me->pos().x()) / double(width());
-                    int x = me->globalX() - int(relX * newW);
-                    int y = me->globalY() - m_dragPosLeftTop.y(); // maintain Y offset roughly
+                    double relY = double(me->pos().y()) / double(height());
+                    // 计算还原窗口左上角，使鼠标保持在相同相对位置
+                    int x = me->globalX() - int(relX * restoreW);
+                    int y = me->globalY() - int(relY * restoreH);
+                    // 计算还原后窗口左上角，使鼠标仍保持在标题栏的相对位置
+                    int newX = me->globalX() - int(relX * restoreW);
+                    int newY = me->globalY() - int(relY * restoreH) + 10; //向下偏移一点
+                    // 边界保护：防止出屏幕
+                    QRect avail = availableScreenGeometry();
+                    if (newX < avail.left()) newX = avail.left();
+                    if (newY < avail.top() + 1) newY = avail.top() + 1;
+                    if (newX + restoreW > avail.right()) newX = avail.right() - restoreW;
+                    if (newY + restoreH > avail.bottom()) newY = avail.bottom() - restoreH;
 
                     setCustomMaximized(false);
-                    setGeometry(x, y, newW, newH);
+                  
+                    setGeometry(newX, newY, restoreW, restoreH);
                     ui->toolButtonMax->setVisible(true);
                     ui->toolButtonRestore->setVisible(false);
-                }
 
-                // normal move
+                    // 更新拖动偏移，保证后续移动平滑
+                    m_dragOffsetForMove = me->globalPos() - frameGeometry().topLeft();
+                }
+                // 正常移动窗口
                 m_moving = true;
-                // move window such that top-left = mouse.global - m_dragPosLeftTop
-                QPoint topleft = me->globalPos() - m_dragPosLeftTop;
+                QPoint topleft = me->globalPos() - m_dragOffsetForMove;
                 move(topleft);
             }
             return false;
@@ -187,7 +195,7 @@ void MainWindow::mousePressEvent(QMouseEvent* event)
         m_resizeRegion = detectResizeRegion(event->pos());
         if (m_resizeRegion != NoResize) {
             m_resizing = true;
-            m_dragPosLeftTop = event->globalPos();
+            m_dragStartForResize = event->globalPos();
         }
         else {
             m_resizing = false;
@@ -201,11 +209,6 @@ void MainWindow::mouseMoveEvent(QMouseEvent* event)
 {
     if (m_resizing && m_leftButton) {
         performResize(event->globalPos()); // 窗口拉伸
-    }
-    // 如果拖动窗口，不改变光标
-    else if (m_leftButton && m_moving) {
-        QPoint topleft = event->globalPos() - m_dragPosLeftTop;
-        move(topleft);
     }
     else if (!m_leftButton) {
         // update cursor depending on edge proximity
@@ -243,7 +246,8 @@ void MainWindow::leaveEvent(QEvent* event)
 {
     Q_UNUSED(event);
     // reset cursor when leaving window
-    if (!m_resizing) unsetCursor();
+    if (!m_resizing)
+        unsetCursor();
     QMainWindow::leaveEvent(event);
 }
 
@@ -317,7 +321,7 @@ void MainWindow::performResize(const QPoint& globalPos)
         return;
 
     QRect geom = geometry();
-    QPoint diff = globalPos - m_dragPosLeftTop;
+    QPoint diff = globalPos - m_dragStartForResize;
     int dx = diff.x();
     int dy = diff.y();
 
@@ -390,8 +394,8 @@ void MainWindow::performResize(const QPoint& globalPos)
         break;
     }
 
-    // update drag base point for smooth continuous resize
-    m_dragPosLeftTop = globalPos;
+    // 更新拖拽基点以平滑连续调整大小
+    m_dragStartForResize = globalPos;
 }
 
 // 当鼠标移动时，检查是否需要吸附到屏幕边缘
