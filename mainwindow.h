@@ -74,6 +74,7 @@ private:
     void setCustomMaximized(bool on);
     QRect availableScreenGeometry() const;
     void trySnapToEdgesWhenDragging(const QPoint& globalPos);
-    void InitWindows();
+    void initWindows();
+
 };
 #endif // MAINWINDOW_H

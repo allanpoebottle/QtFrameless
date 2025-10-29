@@ -1,12 +1,14 @@
 #include "mainwindow.h"
 #include "ui_mainwindow.h"
 #include <QShortcut>
+
+
 MainWindow::MainWindow(QWidget *parent)
     : QMainWindow(parent)
     , ui(new Ui::MainWindow)
 {
     ui->setupUi(this);
-    InitWindows();
+    initWindows();
 
 }
 
@@ -14,7 +16,7 @@ MainWindow::~MainWindow()
 {
     delete ui;
 }
-void MainWindow::InitWindows()
+void MainWindow::initWindows()
 {
     // 无边框
     setWindowFlags(windowFlags() | Qt::FramelessWindowHint);
@@ -66,6 +68,7 @@ void MainWindow::on_toolButtonMax_clicked()
     {
         m_restoreGeometry = geometry();
     }
+
     setCustomMaximized(true);
     ui->toolButtonMax->setVisible(false);
     ui->toolButtonRestore->setVisible(true);
@@ -73,7 +76,6 @@ void MainWindow::on_toolButtonMax_clicked()
 
 void MainWindow::on_toolButtonRestore_clicked()
 {
-    qDebug() << m_restoreGeometry;
     setCustomMaximized(false);
     ui->toolButtonMax->setVisible(true);
     ui->toolButtonRestore->setVisible(false);
@@ -98,6 +100,7 @@ void MainWindow::setCustomMaximized(bool on)
     if (on) {
         // 获取当前窗口所在屏幕的可用区域
         QRect avail = availableScreenGeometry();
+        qDebug() << "avail:" << avail;
         setGeometry(avail);
         m_isMaximizedCustom = true;
     }
@@ -135,7 +138,6 @@ bool MainWindow::eventFilter(QObject* watched, QEvent* event)
                 m_leftButton = true;
                 if (!m_isMaximizedCustom)
                     m_restoreGeometry = geometry();
-                qDebug() << "m_restoreGeometry:" << m_restoreGeometry;
                 // 记录鼠标拖动开始时的窗口位置
                 m_dragOffsetForMove = me->globalPos() - frameGeometry().topLeft();
 
@@ -178,9 +180,10 @@ bool MainWindow::eventFilter(QObject* watched, QEvent* event)
                     if (newX + restoreW > avail.right()) newX = avail.right() - restoreW;
                     if (newY + restoreH > avail.bottom()) newY = avail.bottom() - restoreH;
 
-                    setCustomMaximized(false);
-                  
+            
+             
                     setGeometry(newX, newY, restoreW, restoreH);
+                    m_isMaximizedCustom = false;
                     ui->toolButtonMax->setVisible(true);
                     ui->toolButtonRestore->setVisible(false);
 
