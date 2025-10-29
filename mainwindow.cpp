@@ -1,6 +1,6 @@
 #include "mainwindow.h"
 #include "ui_mainwindow.h"
-
+#include <QShortcut>
 MainWindow::MainWindow(QWidget *parent)
     : QMainWindow(parent)
     , ui(new Ui::MainWindow)
@@ -23,7 +23,7 @@ void MainWindow::InitWindows()
     // 让 UI 中的 widgetTitleBar 捕获鼠标事件（用于双击/拖动）
     m_widgetTitleBar = ui->widgetTitleBar;
     m_widgetTitleBar->installEventFilter(this);
-
+    m_titleBarHeight = m_widgetTitleBar->height();
     // 连接按钮（确保名字与 ui 中一致）
     connect(ui->toolButtonClose, &QAbstractButton::clicked, this, &MainWindow::on_toolButtonClose_clicked);
     connect(ui->toolButtonMin, &QAbstractButton::clicked, this, &MainWindow::on_toolButtonMin_clicked);
@@ -36,7 +36,16 @@ void MainWindow::InitWindows()
     m_widgetTitleBar->setMouseTracking(true);   // 鼠标悬停时显示按钮
     this->setMouseTracking(true);
     ui->centralwidget->setMouseTracking(true);   // 鼠标悬停时显示按钮
-    m_titleBarHeight = m_widgetTitleBar->height();
+    // 快捷键  F11 全屏切换
+    QShortcut* shortcutFullScreen = new QShortcut(QKeySequence(Qt::Key_F11), this);
+    connect(shortcutFullScreen, &QShortcut::activated, this, [this]() {
+        if (m_isMaximizedCustom) {
+            on_toolButtonRestore_clicked();  // 已经最大化则还原
+        }
+        else {
+            on_toolButtonMax_clicked();      // 否则最大化
+        }
+        });
 
 }
 
@@ -64,6 +73,7 @@ void MainWindow::on_toolButtonMax_clicked()
 
 void MainWindow::on_toolButtonRestore_clicked()
 {
+    qDebug() << m_restoreGeometry;
     setCustomMaximized(false);
     ui->toolButtonMax->setVisible(true);
     ui->toolButtonRestore->setVisible(false);
@@ -125,6 +135,7 @@ bool MainWindow::eventFilter(QObject* watched, QEvent* event)
                 m_leftButton = true;
                 if (!m_isMaximizedCustom)
                     m_restoreGeometry = geometry();
+                qDebug() << "m_restoreGeometry:" << m_restoreGeometry;
                 // 记录鼠标拖动开始时的窗口位置
                 m_dragOffsetForMove = me->globalPos() - frameGeometry().topLeft();
 
@@ -256,13 +267,20 @@ void MainWindow::leaveEvent(QEvent* event)
 void MainWindow::showEvent(QShowEvent* event)
 {
     QMainWindow::showEvent(event); // 先调用基类实现
-    // 保存初始位置用于还原
-    m_restoreGeometry = geometry();
+    // 只在第一次显示时保存初始位置  每次最小化恢复会调用showEvent
+    static bool firstShow = true;
+    if (firstShow) {
+        firstShow = false;
+        m_restoreGeometry = geometry();
+    }
 }
 
 // 检测相对于边缘的鼠标位置来调整大小
 MainWindow::ResizeRegion MainWindow::detectResizeRegion(const QPoint& pos)
 {
+    //最大化状态下不允许调整大小
+    if (m_isMaximizedCustom || isMaximized())
+        return NoResize;
     int x = pos.x();
     int y = pos.y();
     int w = width();
